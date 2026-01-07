@@ -1,22 +1,46 @@
-
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { ProductCard } from './components/ProductCard';
 import { Cart } from './components/Cart';
-import { MOCK_PRODUCTS } from './constants';
 import { Product, CartItem, Category } from './types';
+import { supabase } from './lib/supabase';
 
 const App: React.FC = () => {
+  const [products, setProducts] = useState<Product[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('Semua');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch products from Supabase
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+        if (data) setProducts(data);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        // Fallback to empty or notify user
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const categories = ['Semua', ...Object.values(Category)];
 
   const filteredProducts = useMemo(() => {
-    if (activeCategory === 'Semua') return MOCK_PRODUCTS;
-    return MOCK_PRODUCTS.filter(p => p.category === activeCategory);
-  }, [activeCategory]);
+    if (activeCategory === 'Semua') return products;
+    return products.filter(p => p.category === activeCategory);
+  }, [activeCategory, products]);
 
   const addToCart = useCallback((product: Product) => {
     setCartItems(prev => {
@@ -52,6 +76,28 @@ const App: React.FC = () => {
     cartItems.reduce((acc, item) => acc + item.quantity, 0), 
   [cartItems]);
 
+  const handleCheckout = async () => {
+    try {
+      // In a real app, we would send this to an 'orders' table
+      const { data, error } = await supabase
+        .from('orders')
+        .insert([{ 
+          items: cartItems, 
+          total_price: cartItems.reduce((sum, i) => sum + (i.product.price * i.quantity), 0) + 2500,
+          created_at: new Date().toISOString()
+        }]);
+
+      if (error) throw error;
+      
+      alert('Pesanan berhasil dibuat! Tim SayurAstra akan segera menghubungi Anda.');
+      setCartItems([]);
+      setIsCartOpen(false);
+    } catch (err) {
+      console.error('Checkout error:', err);
+      alert('Maaf, terjadi kesalahan saat memproses pesanan. Silakan coba lagi.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white selection:bg-emerald-100 selection:text-emerald-900">
       <Navbar 
@@ -61,7 +107,7 @@ const App: React.FC = () => {
       />
 
       <main>
-        {/* Mobile Search - Visible on Small Screens */}
+        {/* Mobile Search */}
         <div className="md:hidden px-4 py-3 bg-white">
           <div className="relative">
             <input 
@@ -73,7 +119,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Hero Section - Compact for Mobile */}
+        {/* Hero Section */}
         <section className="px-4 py-4 md:py-10">
           <div className="relative h-48 md:h-[400px] rounded-[2rem] overflow-hidden bg-emerald-600">
             <img 
@@ -95,8 +141,8 @@ const App: React.FC = () => {
           </div>
         </section>
 
-        {/* Categories Bar - Minimalist */}
-        <div className="sticky top-16 md:top-20 z-40 bg-white/80 backdrop-blur-md">
+        {/* Categories Bar */}
+        <div className="sticky top-16 md:top-20 z-40 bg-white/80 backdrop-blur-md border-b border-gray-50">
           <div className="max-w-7xl mx-auto px-4 py-3 overflow-x-auto no-scrollbar flex space-x-3">
             {categories.map((cat) => (
               <button
@@ -114,25 +160,39 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Product Grid - 2 Columns on Mobile */}
+        {/* Product Grid */}
         <section className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg md:text-2xl font-black text-slate-800">Sayuran Segar</h2>
-            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase">Lihat Semua</span>
+            <h2 className="text-lg md:text-2xl font-black text-slate-800">
+              {activeCategory === 'Semua' ? 'Sayuran Segar' : activeCategory}
+            </h2>
+            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-wider">
+              {filteredProducts.length} Produk
+            </span>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-            {filteredProducts.map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                onAddToCart={addToCart} 
-              />
-            ))}
+            {isLoading ? (
+              [...Array(6)].map((_, i) => (
+                <div key={i} className="bg-gray-50 rounded-3xl h-64 animate-pulse" />
+              ))
+            ) : filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                  onAddToCart={addToCart} 
+                />
+              ))
+            ) : (
+              <div className="col-span-full py-20 text-center">
+                <p className="text-slate-400 font-medium">Tidak ada produk dalam kategori ini.</p>
+              </div>
+            )}
           </div>
         </section>
 
-        {/* Values - Simple Icon Row */}
+        {/* Values */}
         <section className="px-4 py-12 border-t border-gray-50">
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
@@ -169,7 +229,6 @@ const App: React.FC = () => {
         </div>
       </footer>
 
-      {/* Floating Cart Button for Mobile (Alternative access) */}
       {totalItems > 0 && !isCartOpen && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden animate-bounce">
           <button 
@@ -188,6 +247,7 @@ const App: React.FC = () => {
           onClose={() => setIsCartOpen(false)} 
           onUpdateQuantity={updateQuantity}
           onRemoveItem={removeItem}
+          onCheckout={handleCheckout}
         />
       )}
     </div>
