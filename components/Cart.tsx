@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { CartItem } from '../types';
 
@@ -6,10 +7,9 @@ interface CartProps {
   onClose: () => void;
   onUpdateQuantity: (id: string, delta: number) => void;
   onRemoveItem: (id: string) => void;
-  onCheckout?: () => void;
 }
 
-export const Cart: React.FC<CartProps> = ({ items, onClose, onUpdateQuantity, onRemoveItem, onCheckout }) => {
+export const Cart: React.FC<CartProps> = ({ items, onClose, onUpdateQuantity, onRemoveItem }) => {
   const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const platformFee = items.length > 0 ? 2500 : 0;
   const total = subtotal + platformFee;
@@ -23,7 +23,7 @@ export const Cart: React.FC<CartProps> = ({ items, onClose, onUpdateQuantity, on
             <h2 className="text-xl font-extrabold text-slate-800">Keranjang</h2>
             <p className="text-sm text-slate-400">{items.length} produk terpilih</p>
           </div>
-          <button onClick={onClose} className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-colors">
+          <button onClick={onClose} className="p-2 bg-slate-100 rounded-full text-slate-500">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
         </div>
@@ -40,7 +40,7 @@ export const Cart: React.FC<CartProps> = ({ items, onClose, onUpdateQuantity, on
           ) : (
             items.map((item) => (
               <div key={item.product.id} className="flex gap-4 items-center group">
-                <img src={item.product.image} className="w-20 h-20 object-cover rounded-2xl bg-gray-50 border border-gray-100" alt={item.product.name} />
+                <img src={item.product.image} className="w-20 h-20 object-cover rounded-2xl bg-gray-50" alt={item.product.name} />
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
                     <h4 className="font-bold text-slate-800 text-sm">{item.product.name}</h4>
@@ -58,12 +58,12 @@ export const Cart: React.FC<CartProps> = ({ items, onClose, onUpdateQuantity, on
                   <div className="flex items-center mt-2 bg-gray-100 rounded-xl w-max overflow-hidden">
                     <button 
                       onClick={() => onUpdateQuantity(item.product.id, -1)}
-                      className="px-3 py-1.5 hover:bg-gray-200 text-slate-600 font-bold transition-colors"
+                      className="px-3 py-1.5 hover:bg-gray-200 text-slate-600 font-bold"
                     >-</button>
                     <span className="px-3 text-xs font-bold text-slate-800">{item.quantity}</span>
                     <button 
                       onClick={() => onUpdateQuantity(item.product.id, 1)}
-                      className="px-3 py-1.5 hover:bg-gray-200 text-slate-600 font-bold transition-colors"
+                      className="px-3 py-1.5 hover:bg-gray-200 text-slate-600 font-bold"
                     >+</button>
                   </div>
                 </div>
@@ -92,8 +92,7 @@ export const Cart: React.FC<CartProps> = ({ items, onClose, onUpdateQuantity, on
           </div>
           <button 
             disabled={items.length === 0}
-            onClick={onCheckout}
-            className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-emerald-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none"
+            className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-emerald-200 active:scale-95 transition-all disabled:opacity-50"
           >
             Checkout Sekarang
           </button>
